@@ -1,0 +1,55 @@
+name: Azure Static Web Apps CI/CD
+
+on:
+  push:
+    branches:
+      - dev
+
+
+jobs:
+  build_and_deploy_job:
+   
+    runs-on: ubuntu-latest
+    name: Build and Deploy Job
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+          lfs: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Dependencies
+        run: npm install
+
+      # Include this step only if you specifically need an ID token for additional services
+      - name: Install OIDC Client from Core Package
+        run: npm install @actions/core@1.6.0 @actions/http-client
+
+      - name: Get ID Token
+        uses: actions/github-script@v6
+        id: idtoken
+        with:
+          script: |
+            const core = require('@actions/core');
+            return await core.getIDToken();
+          result-encoding: string
+
+      - name: Build App
+        run: npm run build  # Make sure this exists in your package.json
+
+      - name: Build and Deploy to Azure Static Web Apps
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_VICTORIOUS_GLACIER_0F78E0E1E }}
+          action: "upload"
+          app_location: "/"              # root of your project
+          api_location: ""               # leave empty if no APIs
+          output_location: "build"       # replace 'build' if different
+          github_id_token: ${{ steps.idtoken.outputs.result }}
